@@ -3,10 +3,17 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
+#[derive(Copy, Clone)]
 enum Choice {
     Rock,
     Paper,
     Scissor
+}
+
+enum Outcome {
+    Lose,
+    Draw,
+    Win
 }
 
 fn score(opponent: Choice, me: Choice) -> u64 {
@@ -23,11 +30,28 @@ fn score(opponent: Choice, me: Choice) -> u64 {
     shape_score + outcome_score
 }
 
+fn determine_choice(opponent: Choice, outcome: Outcome) -> Choice {
+    match (opponent, outcome) {
+        (Choice::Rock, Outcome::Draw) | (Choice::Paper, Outcome::Lose) | (Choice::Scissor, Outcome::Win) => Choice::Rock,
+        (Choice::Rock, Outcome::Win) | (Choice::Paper, Outcome::Draw) | (Choice::Scissor, Outcome::Lose) => Choice::Paper,
+        (Choice::Rock, Outcome::Lose) | (Choice::Paper, Outcome::Win) | (Choice::Scissor, Outcome::Draw) => Choice::Scissor,
+    }
+}
+
 fn parse_to_choice(s: &str) -> Choice {
     match s {
         "A" | "X" => Choice::Rock,
         "B" | "Y" => Choice::Paper,
         "C" | "Z" => Choice::Scissor,
+        _ => panic!("I'm not paid enough to do this")
+    }
+}
+
+fn parse_to_outcome(s: &str) -> Outcome {
+    match s {
+        "X" => Outcome::Lose,
+        "Y" => Outcome::Draw,
+        "Z" => Outcome::Win,
         _ => panic!("I'm not paid enough to do this")
     }
 }
@@ -40,10 +64,10 @@ fn process(file: File) {
             let mut splitter = content.splitn(2, ' ');
             let opponent = splitter.next().unwrap();
             let opponent_choice = parse_to_choice(opponent);
-            let my = splitter.next().unwrap();
-            let my_choice = parse_to_choice(my);
-            let outcome = score(opponent_choice, my_choice);
-            total = total + outcome;
+            let outcome = splitter.next().unwrap();
+            let expected_outcome = parse_to_outcome(outcome);
+            let my_choice = determine_choice(opponent_choice, expected_outcome);
+            total = total + score(opponent_choice, my_choice);
         }
     }
     println!("Total score is {}", total);
