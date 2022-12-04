@@ -62,7 +62,65 @@ fn priority(c: char) -> u64 {
     }
 }
 
-fn process(file: File) {
+fn hashset_from_content(content: Vec<char>) -> HashSet<char> {
+    HashSet::from_iter(content.iter().cloned())
+}
+
+struct Group3 {
+    inner: std::io::Lines<BufReader<File>>
+}
+
+struct Group3Iter {
+    inner: Group3
+}
+
+impl Group3 {
+    fn iter(self) -> Group3Iter {
+        Group3Iter {inner: self}
+    }
+}
+
+impl Iterator for Group3Iter {
+    // type Item = &'a It;
+    type Item = (HashSet<char>, HashSet<char>, HashSet<char>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let a = self.inner.inner.next();
+        let b = self.inner.inner.next();
+        let c = self.inner.inner.next();
+        match (a, b, c) {
+            (Some(Ok(a)), Some(Ok(b)), Some (Ok(c))) => {
+                let a_h = hashset_from_content(a.chars().collect());
+                let b_h = hashset_from_content(b.chars().collect());
+                let c_h = hashset_from_content(c.chars().collect());
+                Some((a_h, b_h, c_h))
+                 }
+            (_, _, _) => None
+        }
+    }
+}
+
+fn group3(file: File) {
+    let grouped : Group3 = Group3 {inner: BufReader::new(file).lines()};
+    // let mut iter = e.iter();
+    // iter.next().unwrap()
+    let mut total : u64 = 0;
+    for (a, b, c) in grouped.iter() {
+        let inter = a.intersection(&b);
+        for common in inter {
+            match c.contains(&common) {
+                false => (),
+                true => {
+                    total += priority(*common);
+                },
+            }
+        }
+    }
+    println!("Total 3 groups: {}", total);
+
+}
+
+fn _process(file: File) {
     let lines = BufReader::new(file).lines();
     let mut total : u64 = 0;
     for line in lines {
@@ -70,8 +128,9 @@ fn process(file: File) {
             let capacity = content.len();
             let part1 : Vec<char> = content[0..(capacity/2)].chars().collect();
             let part2 : Vec<char> = content[(capacity/2)..capacity].chars().collect();
-            let compartment1: HashSet<char> = HashSet::from_iter(part1.iter().cloned());
-            let compartment2: HashSet<char> = HashSet::from_iter(part2.iter().cloned());
+            // let compartment1: HashSet<char> = HashSet::from_iter(part1.iter().cloned());
+            let compartment1: HashSet<char> = hashset_from_content(part1);
+            let compartment2: HashSet<char> = hashset_from_content(part2);
             let common = compartment1.intersection(&compartment2);
             let mut common_prio : u64 = 0;
             for item in common {
@@ -95,7 +154,8 @@ fn main() {
 
             match File::open(&path) {
                 Err(why) => println!("couldn't open file: {}", why),
-                Ok(file) => process(file),
+                // Ok(file) => _process(file),
+                Ok(file) => group3(file),
             }
         }
     }
