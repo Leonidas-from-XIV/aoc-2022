@@ -62,6 +62,10 @@ fn perform_move(stacks: &mut Vec<Vec<char>>, mov: &Move) {
         let v = stack.pop().unwrap();
         cache.push(v);
     }
+    let part2 = true;
+    if part2 {
+        cache.reverse();
+    }
     // println!("Attempting to move {:?}", cache);
 
     let stack = &mut stacks[mov.to - 1];
@@ -105,7 +109,6 @@ fn process(file: File) {
             }
         }
     }
-    // stack_lines.reverse();
     let mut stacks = construct_stacks(stack_lines);
     // println!("Initial tops: {}", peek_tops_id(&stacks));
 
