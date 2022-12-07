@@ -86,6 +86,42 @@ fn fs_size(fs: &Fs) -> u64 {
     }
 }
 
+fn find_at_most(size: u64, fs: &Fs) -> Vec<&Fs> {
+    let mut found : Vec<&Fs> = Vec::new();
+    match fs {
+        Fs::FileEntry(_, _) => (),
+        Fs::Dir(_, entries) => {
+            if fs_size(fs) <= size {
+                found.push(fs);
+            }
+            for e in entries {
+              for find in find_at_most(size, e) {
+                  found.push(find)
+              }
+            }
+        }
+    }
+    found
+}
+
+fn find_at_least(size: u64, fs: &Fs) -> Vec<&Fs> {
+    let mut found : Vec<&Fs> = Vec::new();
+    match fs {
+        Fs::FileEntry(_, _) => (),
+        Fs::Dir(_, entries) => {
+            if fs_size(fs) >= size {
+                found.push(fs);
+            }
+            for e in entries {
+              for find in find_at_least(size, e) {
+                  found.push(find)
+              }
+            }
+        }
+    }
+    found
+}
+
 fn process(file: File) {
     let lines = BufReader::new(file).lines();
     let mut commands : Vec<Line> = Vec::new();
@@ -99,7 +135,23 @@ fn process(file: File) {
         }
     }
     let fs = fs_from_commands(commands);
-    println!("Entries: {:?}", fs);
+    println!("Entries: {:?}", &fs);
+    println!("Size of all: {}", fs_size(&fs));
+    let at_most : u64 = 100000;
+    let small_fs = find_at_most(at_most, &fs);
+    let total_small : u64 = small_fs.iter().map(|e| fs_size(e)).sum();
+    println!("Total size of dirs of at most {} size: {}", at_most, total_small);
+
+    let total : u64 = 70000000;
+    let free = total - fs_size(&fs);
+    let free_required : u64 = 30000000;
+    let need_to_free = free_required - free;
+    println!("Need to free {}", need_to_free); 
+    let mut larger_dirs = find_at_least(need_to_free, &fs);
+    println!("Larger dirs {:?}", larger_dirs);
+    larger_dirs.sort_by(|a, b| fs_size(b).cmp(&fs_size(a)));
+    let smallest_fitting = larger_dirs.pop().unwrap();
+    println!("Delete {:?}, size {}", smallest_fitting, fs_size(smallest_fitting));
 }
 
 fn main() {
