@@ -12,14 +12,12 @@ enum Fs {
 
 #[derive(Debug)]
 enum Line {
-    // Ls,
     Cd(String),
     FileEntry(String, u64),
 }
 
 fn parse_command(l: String) -> Option<Line> {
     if l.starts_with("$ ls") {
-        // Some(Line::Ls)
         None
     } else if l.starts_with("$ cd") {
         let mut chunks = l.rsplitn(2, " ");
@@ -36,8 +34,6 @@ fn parse_command(l: String) -> Option<Line> {
 }
 
 fn fs_from_commands(cmds: Vec<Line>) -> Fs {
-    // let mut cwd : Vec<String> = Vec::new();
-    // let mut current_entries : Vec<Vec<Fs>> = Vec::new();
 
     fn aux(cwd : String, mut cmds: Iter<Line>) -> (Fs, Iter<Line>) {
         let mut current_entries : Vec<Fs> = Vec::new();
