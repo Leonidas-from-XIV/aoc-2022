@@ -4,58 +4,6 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::cmp::Ordering;
 
-fn _visible(line: &Vec<u32>) -> Vec<bool> {
-    let mut visible : Vec::<bool> = Vec::new();
-    let mut biggest = line.get(0).unwrap();
-    let halfway = line.len() / 2;
-
-    visible.push(true);
-
-    for tree in &line[1..halfway] {
-        if tree > biggest {
-            visible.push(true);
-        } else {
-            visible.push(false);
-        }
-
-        if tree > biggest {
-            biggest = tree;
-        }
-    }
-
-    let mut right_visible : Vec::<bool> = Vec::new();
-    let mut biggest = line.last().unwrap();
-    right_visible.push(true);
-
-    for tree in line[halfway+1..].iter().rev() {
-        println!("Tree: {}", tree);
-        if tree > biggest {
-            right_visible.push(true);
-        } else {
-            right_visible.push(false);
-        }
-
-        if tree > biggest {
-            biggest = tree;
-        }
-    }
-    right_visible.reverse();
-    for v in right_visible {
-        visible.push(v);
-    }
-    println!("XXX");
-    
-    visible
-}
-
-fn exchange(x: &Vec<Vec<u32>>) -> Vec<Vec<u32>> {
-    (0..x[0].len()).map(|i| x
-        .iter()
-        .map(|c| c[i])
-        .collect()
-      ).collect() 
-}
-
 fn print_vis(x: &Vec<Vec<bool>>) {
     for line in x {
         let s : String = line.iter().map(|v| match v { false => "0", true => "1" }).collect();
@@ -72,7 +20,7 @@ fn print(x: &Vec<Vec<u32>>) {
 
 fn horizontal_of(x: usize, y: usize, forest: &Vec<Vec<u32>>) -> (Vec<&u32>, Vec<&u32>) {
     let line = forest.get(x).unwrap();
-    let left : Vec<&u32> = line[0..y].iter().collect();
+    let left : Vec<&u32> = line[0..y].iter().rev().collect();
     let right : Vec<&u32> = line[y+1..].iter().collect();
     (left, right)
 }
@@ -92,6 +40,7 @@ fn vertical_of(x: usize, y: usize, forest: &Vec<Vec<u32>>) -> (Vec<&u32>, Vec<&u
             },
         };
     }
+    above.reverse();
     (above, below)
 }
 
@@ -101,6 +50,17 @@ fn visible_from_direction(tree: u32, direction: &Vec<&u32>) -> bool {
 
 fn visible(tree: u32, left: &Vec<&u32>, right: &Vec<&u32>, top: &Vec<&u32>, bottom: &Vec<&u32>) -> bool {
     visible_from_direction(tree, left) || visible_from_direction(tree, right) || visible_from_direction(tree, top) || visible_from_direction(tree, bottom)
+}
+
+fn view_distance_from_direction(tree: u32, direction: &Vec<&u32>) -> u64 {
+    let mut distance : u64 = 0;
+    for e in direction {
+        distance += 1;
+        if *e >= &tree {
+            break;
+        }
+    }
+    distance
 }
 
 fn calc_vis(forest: &Vec<Vec<u32>>) -> Vec<Vec<bool>> {
@@ -113,6 +73,26 @@ fn calc_vis(forest: &Vec<Vec<u32>>) -> Vec<Vec<bool>> {
             let vis = visible(*tree, &left, &right, &top, &bottom);
             // println!("x {} y {} tree {} left {:?} right {:?} top {:?} bottom {:?} visible {}", x, y, tree, left, right, top, bottom, vis);
             vis_line.push(vis);
+        }
+        vis.push(vis_line);
+    }
+    vis
+}
+
+fn calc_score(forest: &Vec<Vec<u32>>) -> Vec<Vec<u64>> {
+    let mut vis : Vec<Vec<u64>> = Vec::new();
+    for (x, line) in forest.iter().enumerate() {
+        let mut vis_line : Vec<u64> = Vec::new();
+        for (y, tree) in line.iter().enumerate() {
+            let (left, right) = horizontal_of(x, y, forest);
+            let (top, bottom) = vertical_of(x, y, forest);
+            let sleft = view_distance_from_direction(*tree, &left);
+            let sright = view_distance_from_direction(*tree, &right);
+            let stop = view_distance_from_direction(*tree, &top);
+            let sbottom = view_distance_from_direction(*tree, &bottom);
+            let score = sleft * sright * stop * sbottom;
+            // println!("x {} y {} tree {} left {:?} right {:?} top {:?} bottom {:?} score ({} * {} * {} * {}) = {}", x, y, tree, left, right, top, bottom, sleft, sright, stop, sbottom, score);
+            vis_line.push(score);
         }
         vis.push(vis_line);
     }
@@ -133,6 +113,9 @@ fn process(file: File) {
     let total : u64 = vis.iter().map(|l| l.iter().map(|e| match e { true => 1, false => 0}).sum::<u64>()).sum();
     print_vis(&vis);
     println!("Visible trees: {}", total);
+    let scores = calc_score(&forest);
+    let max_score : u64 = *scores.iter().map(|l| l.iter().max().unwrap()).max().unwrap();
+    println!("Max score: {}", max_score);
 }
 
 fn main() {
