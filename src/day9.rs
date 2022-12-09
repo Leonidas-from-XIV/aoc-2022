@@ -53,7 +53,7 @@ fn new_tail_pos(tail_pos: Loc, head_pos: Loc) -> Loc {
     }
 }
 
-fn new_head_pos(head_pos: Loc, dir: Move1) -> Loc {
+fn new_head_pos(head_pos: Loc, dir: &Move1) -> Loc {
     let (x, y) = head_pos;
     match dir.0 {
         Direction::Left => (x-1, y),
@@ -86,7 +86,7 @@ fn process(file: File) {
     let mut tail_positions : Vec<Loc> = Vec::new();
     tail_positions.push(tail_pos);
 
-    for mov1 in move1s {
+    for mov1 in &move1s {
         head_pos = new_head_pos(head_pos, mov1);
         tail_pos = new_tail_pos(tail_pos, head_pos);
         // println!("Head pos {:?} => Tail pos {:?}", head_pos, tail_pos);
@@ -95,6 +95,25 @@ fn process(file: File) {
    
     let tail_pos_set : HashSet<Loc> = HashSet::from_iter(tail_positions.iter().cloned());
     println!("Unique tail positions: {}", tail_pos_set.len());
+
+    let mut head_rope : Loc = (0, 0);
+    let mut tail_rope : Vec<Loc> = (0..9).map(|_| (0, 0)).collect();
+    let mut tail_rope_positions : Vec<Loc> = Vec::new();
+    tail_rope_positions.push((0,0));
+    for mov1 in &move1s {
+        head_rope = new_head_pos(head_rope, mov1);
+        let mut prev = head_rope;
+        let mut new_tail_rope : Vec<Loc> = Vec::new();
+        for elem in tail_rope {
+            let new_tp = new_tail_pos(elem, prev);
+            new_tail_rope.push(new_tp);
+            prev = new_tp;
+        }
+        tail_rope = new_tail_rope;
+        tail_rope_positions.push(*tail_rope.last().unwrap());
+    }
+    let tail_rope_set : HashSet<Loc> = HashSet::from_iter(tail_rope_positions.iter().cloned());
+    println!("Unique rope positions: {}", tail_rope_set.len());
 }
 
 fn main() {
